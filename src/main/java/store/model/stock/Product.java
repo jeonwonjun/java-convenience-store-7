@@ -1,4 +1,4 @@
-package store.model;
+package store.model.stock;
 
 public class Product {
     private final String name;
