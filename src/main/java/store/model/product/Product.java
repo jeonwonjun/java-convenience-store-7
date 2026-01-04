@@ -1,8 +1,7 @@
 package store.model.product;
 
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-import javax.swing.text.html.Option;
 import store.model.promotion.Promotion;
 import store.model.promotion.Promotions;
 import store.util.ErrorMessage;
@@ -14,54 +13,58 @@ public class Product {
     private static final int QUANTITY_IDX = 2;
     private static final int PROMOTION_IDX = 3;
 
-    private String name;
-    private int price = 0;
-    private int totalQuantity = 0;
-    private int promotionQuantity = 0;
-    private List<Promotion> promotions = List.of();
+    private final String name;
+    private final int price;
+    private int promotionQuantity;
+    private int normalQuantity;
+    private final Promotion promotion;
 
-    public static Product from(String input, Promotions promotions) {
-        List<String> productData = FormatManager.parseInput(input, ",");
-        validateInputFormat(productData.get(PRICE_IDX));
-        validateInputFormat(productData.get(QUANTITY_IDX));
-        return new Product(productData.get(NAME_IDX), Integer.parseInt(productData.get(PRICE_IDX)),
-                Integer.parseInt(productData.get(QUANTITY_IDX)),
-                promotions.findByName(productData.get(PROMOTION_IDX)));
-    }
-
-    private Product(String name, int price, int quantity, List<Promotion> promotions) {
+    public Product(String name, int price, int promotionQuantity, int normalQuantity, Promotion promotion) {
         this.name = name;
         this.price = price;
-        QuantityDto quantityDto = updateQuantityByPromotion(promotions, quantity);
-        this.totalQuantity = quantityDto.totalQuantity();
-        this.promotionQuantity = quantityDto.promotionQuantity();
-        if (isPromotions(promotions)) {
-            this.promotions = promotions;
-        }
+        this.promotionQuantity = promotionQuantity;
+        this.normalQuantity = normalQuantity;
+        this.promotion = promotion;
     }
 
-    private static void validateInputFormat(String input) {
-        try {
-            Integer.parseInt(input);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(ErrorMessage.INVALID_INPUT_FORMAT.getMessage());
-        }
+    public boolean isPromotionActive(LocalDate date) {
+        return promotion != null && promotion.isAvailable(date);
     }
 
-    private QuantityDto updateQuantityByPromotion(List<Promotion> promotions, int quantity) {
-        if (isPromotions(promotions)) {
-            return new QuantityDto(totalQuantity + quantity, quantity);
+    public void reduceStock(int purchaseAmount) {
+        int totalAmount = promotionQuantity + normalQuantity;
+        if (!hasStock(purchaseAmount)) {
+            throw new IllegalArgumentException(ErrorMessage.INVALID_PRODUCT_QUANTITY.getMessage());
         }
 
-        return new QuantityDto(totalQuantity + quantity, 0);
+        int fromPromotion = Math.min(promotionQuantity, totalAmount);
+        promotionQuantity -= fromPromotion;
+
+        int remaining = totalAmount - fromPromotion;
+        normalQuantity -= remaining;
     }
 
-    private static boolean isPromotions(List<Promotion> promotions) {
-        return !promotions.isEmpty();
+    public boolean hasStock(int amount) {
+        int totalQuantity = promotionQuantity + normalQuantity;
+        return totalQuantity >= amount;
     }
 
-    public boolean isEnoughQuantity(int count) {
-        return totalQuantity >= count;
+    public void addNormalQuantity(int quantity) {
+        this.normalQuantity += quantity;
+    }
+
+    public void addPromotionQuantity(int quantity) {
+        this.promotionQuantity += quantity;
+    }
+
+    public String getStatus() {
+        String promotionName = "없음";
+        if (this.promotion != null) {
+            promotionName = this.promotion.getName();
+        }
+
+        return String.format("- %s, %d원, 프로모션재고: %d(%s), 일반재고: %d",
+                name, price, promotionQuantity, promotionName, normalQuantity);
     }
 
     public String getName() {
