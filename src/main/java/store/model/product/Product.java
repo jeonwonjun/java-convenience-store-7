@@ -74,4 +74,16 @@ public class Product {
     public int getPrice() {
         return price;
     }
+
+    public int getPromotionQuantity() {
+        return promotionQuantity;
+    }
+
+    public int getNormalQuantity() {
+        return normalQuantity;
+    }
+
+    public Promotion getPromotion() {
+        return promotion;
+    }
 }
