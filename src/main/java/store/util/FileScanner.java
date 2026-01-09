@@ -50,7 +50,7 @@ public class FileScanner {
         );
     }
 
-    private static List<String> readFile(String filePath) {
+    public List<String> readFile(String filePath) {
         try {
             Scanner scanner = new Scanner(new File(filePath));
             List<String> fileBody = new ArrayList<>();
